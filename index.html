@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tehtäväarkkigeneraattori 4-vuotiaille</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#e9ecef;color:#222}
+  #app{display:flex;align-items:flex-start}
+  #panel{width:350px;min-width:350px;height:100vh;overflow:auto;position:sticky;top:0;background:#fff;padding:16px;border-right:1px solid #ccc}
+  #panel h1{font-size:19px;margin:0 0 4px}
+  #panel .sub{font-size:12px;color:#666;margin-bottom:12px}
+  #panel h2{font-size:14px;margin:16px 0 6px;text-transform:uppercase;letter-spacing:.5px;color:#444}
+  .btns{display:flex;flex-wrap:wrap;gap:6px}
+  .btns button{border:1px solid #bbb;background:#f6f6f6;border-radius:16px;padding:4px 10px;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:4px}
+  .btns button svg{width:22px;height:22px}
+  .btns button.on{background:#1f5fbf;color:#fff;border-color:#1f5fbf}
+  .btns button.on svg{background:#fff;border-radius:50%}
+  #levels button{font-size:14px;letter-spacing:-1px}
+  .area{font-size:12px;font-weight:bold;color:#1f5fbf;margin:10px 0 3px}
+  label.task{display:flex;align-items:center;gap:6px;font-size:13.5px;padding:3px 4px;border-radius:5px;cursor:pointer}
+  label.task:hover{background:#f0f4fb}
+  label.task .ord{display:inline-block;min-width:20px;height:20px;border-radius:10px;background:#1f5fbf;color:#fff;font-size:11px;text-align:center;line-height:20px;visibility:hidden}
+  label.task.sel .ord{visibility:visible}
+  label.task.dis{opacity:.45;cursor:not-allowed}
+  .row{display:flex;gap:8px;align-items:center;font-size:13px;margin-top:6px}
+  .row input[type=text]{flex:1;padding:5px;font-size:14px;text-transform:uppercase}
+  .row input[type=number]{width:60px;padding:5px}
+  .actions{display:flex;flex-direction:column;gap:8px;margin-top:16px}
+  .actions button{padding:10px;font-size:14px;border-radius:6px;border:none;cursor:pointer}
+  .primary{background:#1f5fbf;color:#fff}
+  .secondary{background:#e3e8f0}
+  .hint{font-size:11.5px;color:#666;margin-top:8px;line-height:1.4}
+  #preview{flex:1;padding:20px;display:flex;flex-direction:column;align-items:center;gap:20px}
+  .sheet{width:210mm;height:296.5mm;background:#fff;padding:10mm;box-shadow:0 2px 10px rgba(0,0,0,.25);overflow:hidden;display:flex;flex-direction:column}
+  .hdr{height:14mm;display:flex;justify-content:space-between;align-items:center;border-bottom:.5mm solid #000;margin-bottom:4mm}
+  .hdr .l{display:flex;align-items:center;gap:2mm}
+  .hdr .ttl{font-size:17pt;font-weight:bold}
+  .hdr .lvl{font-size:13pt;margin-left:2mm;letter-spacing:-.5px}
+  .hdr .nm{font-size:13pt}
+  .prow{display:flex;gap:4mm}
+  .prow+.prow{margin-top:4mm}
+  .cell{border:.4mm solid #000;border-radius:3mm;padding:2mm;overflow:hidden}
+  .ctitle{height:10.5mm;font-size:10pt;line-height:5mm;overflow:hidden}
+  .ctitle b{display:inline-block;width:5mm;height:5mm;border-radius:50%;background:#000;color:#fff;text-align:center;line-height:5mm;font-size:8.5pt;margin-right:1.5mm}
+  .empty{font-size:15pt;color:#888;text-align:center;margin-top:40mm}
+  .wrap{position:relative;overflow:hidden}
+  html,body{overflow-x:hidden}
+  .wrap .sheet{transform-origin:top left}
+  #mbar{display:none}
+  @media (max-width:900px){
+    #app{flex-direction:column}
+    #panel{width:100%;min-width:0;height:auto;position:static;border-right:none;border-bottom:1px solid #ccc;padding:14px 14px 4px}
+    #panel h1{font-size:21px}
+    .btns button{padding:9px 13px;font-size:15px}
+    .btns button svg{width:26px;height:26px}
+    #levels button{font-size:17px;padding:9px 12px}
+    label.task{font-size:16px;padding:8px 4px}
+    label.task input{width:22px;height:22px}
+    .row{font-size:15px}
+    .row input[type=text],.row input[type=number]{font-size:16px;padding:8px}
+    #panel .actions{display:none}
+    #preview{padding:12px 8px 90px;gap:12px;width:100%;overflow:hidden}
+    .wrap .sheet{box-shadow:0 1px 6px rgba(0,0,0,.3)}
+    #mbar{display:flex;position:fixed;left:0;right:0;bottom:0;gap:8px;padding:10px;background:#fff;border-top:1px solid #ccc;box-shadow:0 -2px 8px rgba(0,0,0,.1);z-index:10}
+    #mbar button{flex:1;padding:14px 6px;font-size:16px;border-radius:8px;border:none}
+  }
+  @page{size:A4;margin:0}
+  @media print{
+    body{background:#fff}
+    #panel{display:none}
+    #preview{padding:0;gap:0;display:block}
+    .sheet{box-shadow:none !important;transform:none !important;break-after:page;page-break-after:always}
+    .wrap{width:auto !important;height:auto !important}
+    #mbar{display:none !important}
+    .sheet:last-child{break-after:auto;page-break-after:auto}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="panel">
+    <h1>Tehtäväarkkigeneraattori</h1>
+    <div class="sub">4-vuotiaille · tulostettavat A4-arkit · mustavalkotulostimelle sopiva</div>
+
+    <h2>1. Teema</h2>
+    <div class="btns" id="themes"></div>
+
+    <h2>2. Vaikeusaste</h2>
+    <div class="btns" id="levels"></div>
+
+    <h2>3. Tehtävät (1–6 arkille)</h2>
+    <div id="tasks"></div>
+    <div class="row" style="margin-top:8px">Kirjaimet:<input type="text" id="letters" value="A" maxlength="12" title="Esim. lasten nimien kirjaimet"></div>
+    <div class="hint">Kirjaimia käytetään kirjainharjoituksessa (esim. lasten nimien alkukirjaimet).</div>
+
+    <h2>4. Tulostus</h2>
+    <div class="row">Arkkien määrä: <input type="number" id="pages" min="1" max="10" value="1"></div>
+    <div class="hint">Jokainen arkki arvotaan erikseen, eli tehtävät ovat samat mutta sisältö vaihtelee. Kaksosille kannattaa valita 2 arkkia.</div>
+
+    <div class="actions">
+      <button class="secondary" id="shuffle">🎲 Arvo uudet tehtävät</button>
+      <button class="primary" id="print">🖨️ Tulosta / tallenna PDF</button>
+    </div>
+    <div class="hint">Puhelimella tulosta selaimen alapalkin Tulosta-napista. Tulostusikkunassa valitse paperikooksi A4, marginaaleiksi ”Ei mitään” ja skaalaukseksi 100 %. PDF:n saat valitsemalla tulostimeksi ”Tallenna PDF-muodossa”.</div>
+  </div>
+  <div id="preview"><div id="sheets"></div></div>
+</div>
+<div id="mbar"><button class="secondary" id="mpreview">👀 Esikatselu</button><button class="secondary" id="mshuffle">🎲 Arvo</button><button class="primary" id="mprint">🖨️ Tulosta</button></div>
+
+<script>
+/* ---------- satunnaisluvut ---------- */
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;}}
+let R=Math.random;
+const ri=(a,b)=>a+Math.floor(R()*(b-a+1));
+const pick=a=>a[Math.floor(R()*a.length)];
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(R()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const f1=v=>(+v).toFixed(1);
+let UID=0;const uid=()=>'c'+(UID++);
+
+function txt(x,y,str,size,o={}){return `<text x="${f1(x)}" y="${f1(y)}" font-size="${f1(size)}" font-family="Arial, Helvetica, sans-serif" text-anchor="${o.anchor||'middle'}" dominant-baseline="${o.base||'central'}" font-weight="${o.weight||'normal'}" fill="${o.fill||'#000'}">${str}</text>`;}
+function starPts(cx,cy,R1,r,n=5){const p=[];for(let i=0;i<2*n;i++){const a=-Math.PI/2+i*Math.PI/n;const rr=i%2?r:R1;p.push(f1(cx+rr*Math.cos(a))+','+f1(cy+rr*Math.sin(a)));}return p.join(' ');}
+function gridPos(n,x,y,w,h){let best=null;for(let c=1;c<=n;c++){const r=Math.ceil(n/c);const cs=Math.min(w/c,h/r);if(!best||cs>best.cs)best={c,r,cs};}
+  const {c,r,cs}=best;const ox=x+(w-c*cs)/2,oy=y+(h-r*cs)/2;const pts=[];
+  for(let i=0;i<n;i++){const row=Math.floor(i/c),col=i%c;pts.push([ox+(col+.5)*cs,oy+(row+.5)*cs]);}return {pts,cs};}
+const B='fill="#000"';
+const dot=(x,y,r=2.6)=>`<circle cx="${x}" cy="${y}" r="${r}" ${B} stroke="none"/>`;
+const P=(cx,cy,r,deg)=>[cx+r*Math.cos(deg*Math.PI/180),cy+r*Math.sin(deg*Math.PI/180)];
+const pts=a=>a.map(p=>f1(p[0])+','+f1(p[1])).join(' ');
+function clipGrid(clip,x0,y0,x1,y1,step,diag){const id=uid();let l='';
+  if(diag){for(let k=x0-(y1-y0);k<x1;k+=step){l+=`<line x1="${k}" y1="${y0}" x2="${k+(y1-y0)}" y2="${y1}"/><line x1="${k}" y1="${y1}" x2="${k+(y1-y0)}" y2="${y0}"/>`;}}
+  else{for(let x=x0+step;x<x1;x+=step)l+=`<line x1="${x}" y1="${y0}" x2="${x}" y2="${y1}"/>`;for(let y=y0+step;y<y1;y+=step)l+=`<line x1="${x0}" y1="${y}" x2="${x1}" y2="${y}"/>`;}
+  return `<clipPath id="${id}">${clip}</clipPath><g clip-path="url(#${id})">${l}</g>`;}
+
+/* ---------- labyrintit ----------
+   Uuden vaikeuskäyrän 1. taso vastaa aiemman version 3. tasoa.
+   Jokainen seuraava taso käyttää selvästi suurempaa ruudukkoa, pidempää
+   ratkaisupolkua sekä useampia ja syvempiä umpikujiin päättyviä harhareittejä. */
+const MAZE_LEVELS=[
+  {cells:28, tries:180, minPath:11, minChoices:3,  minDeadEnds:3,  minDepth:2},
+  {cells:55, tries:200, minPath:22, minChoices:5,  minDeadEnds:5,  minDepth:3},
+  {cells:95, tries:220, minPath:38, minChoices:8,  minDeadEnds:8,  minDepth:5},
+  {cells:150,tries:260, minPath:60, minChoices:12, minDeadEnds:12, minDepth:7},
+  {cells:220,tries:300, minPath:90, minChoices:16, minDeadEnds:16, minDepth:10}
+];
+function mazeOpenNeighbors(r,c,rows,cols,right,bottom){const a=[];
+  if(r>0&&!bottom[r-1][c])a.push([r-1,c]);
+  if(r<rows-1&&!bottom[r][c])a.push([r+1,c]);
+  if(c>0&&!right[r][c-1])a.push([r,c-1]);
+  if(c<cols-1&&!right[r][c])a.push([r,c+1]);
+  return a;
+}
+function mazeCandidate(rows,cols){
+  const right=[],bottom=[],vis=[];
+  for(let r=0;r<rows;r++){right.push(Array(cols).fill(true));bottom.push(Array(cols).fill(true));vis.push(Array(cols).fill(false));}
+  const st=[[0,0]];vis[0][0]=true;
+  while(st.length){const [r,c]=st[st.length-1];const nb=[];
+    if(r>0&&!vis[r-1][c])nb.push([r-1,c]);if(r<rows-1&&!vis[r+1][c])nb.push([r+1,c]);
+    if(c>0&&!vis[r][c-1])nb.push([r,c-1]);if(c<cols-1&&!vis[r][c+1])nb.push([r,c+1]);
+    if(!nb.length){st.pop();continue;}const [nr,nc]=pick(nb);
+    if(nr>r)bottom[r][c]=false;else if(nr<r)bottom[nr][c]=false;else if(nc>c)right[r][c]=false;else right[r][nc]=false;
+    vis[nr][nc]=true;st.push([nr,nc]);
+  }
+  return {right,bottom};
+}
+function mazeStats(rows,cols,right,bottom){
+  const key=(r,c)=>r*cols+c,goal=key(rows-1,cols-1),parent=Array(rows*cols).fill(-2),q=[[0,0]];parent[0]=-1;
+  for(let i=0;i<q.length;i++){const [r,c]=q[i];if(key(r,c)===goal)break;
+    mazeOpenNeighbors(r,c,rows,cols,right,bottom).forEach(([nr,nc])=>{const k=key(nr,nc);if(parent[k]===-2){parent[k]=key(r,c);q.push([nr,nc]);}});
+  }
+  const path=[];for(let k=goal;k!==-1;k=parent[k])path.push(k);path.reverse();const onPath=new Set(path);
+  let choices=0,branches=0,deadEnds=0,maxDepth=0;
+  path.forEach(k=>{const r=Math.floor(k/cols),c=k%cols;let here=0;
+    mazeOpenNeighbors(r,c,rows,cols,right,bottom).forEach(([nr,nc])=>{const nk=key(nr,nc);if(onPath.has(nk))return;
+      here++;branches++;const seen=new Set([k,nk]),stack=[[nr,nc,1]];
+      while(stack.length){const [ar,ac,depth]=stack.pop();maxDepth=Math.max(maxDepth,depth);const next=mazeOpenNeighbors(ar,ac,rows,cols,right,bottom).filter(([br,bc])=>!seen.has(key(br,bc))&&!onPath.has(key(br,bc)));
+        if(!next.length)deadEnds++;next.forEach(([br,bc])=>{seen.add(key(br,bc));stack.push([br,bc,depth+1]);});}
+    });if(here)choices++;
+  });
+  return {path:path.length,choices,branches,deadEnds,maxDepth};
+}
+function makeMaze(rows,cols,level){const cfg=MAZE_LEVELS[level];let best=null,bestScore=-Infinity;
+  for(let i=0;i<cfg.tries;i++){const m=mazeCandidate(rows,cols),s=mazeStats(rows,cols,m.right,m.bottom);let score;
+    const missing=Math.max(0,cfg.minPath-s.path)+Math.max(0,cfg.minChoices-s.choices)*4+Math.max(0,cfg.minDeadEnds-s.deadEnds)*3+Math.max(0,cfg.minDepth-s.maxDepth)*3;
+    score=s.path*2+s.choices*18+s.branches*7+s.deadEnds*5+s.maxDepth*3-missing*1000;
+    if(score>bestScore){bestScore=score;best={...m,stats:s};}
+  }
+  return best;
+}
+
+/* ---------- KUVAT: L = kerrokset (ääriviiva+valkoinen täyttö), d = yksityiskohdat ---------- */
+const ICONS={
+ /* jalkapallo */
+ ball:()=>{const id=uid();let d=`<clipPath id="${id}"><circle cx="50" cy="50" r="42"/></clipPath><g clip-path="url(#${id})">`;
+   const cen=[];for(let i=0;i<5;i++)cen.push(P(50,50,14,-90+72*i));d+=`<polygon points="${pts(cen)}" ${B}/>`;
+   const outer=[];for(let i=0;i<5;i++){const a=-90+72*i;const c=P(50,50,43,a);const pv=[];for(let j=0;j<5;j++)pv.push(P(c[0],c[1],13,a+180+72*j));outer.push(pv);
+     d+=`<polygon points="${pts(pv)}" ${B}/><line x1="${f1(cen[i][0])}" y1="${f1(cen[i][1])}" x2="${f1(pv[0][0])}" y2="${f1(pv[0][1])}"/>`;}
+   for(let i=0;i<5;i++){const a=outer[i][1],b=outer[(i+1)%5][4];const m=P(50,50,36,-90+72*i+36);d+=`<polyline points="${pts([a,m,b])}"/><line x1="${f1(m[0])}" y1="${f1(m[1])}" x2="${f1(P(50,50,48,-90+72*i+36)[0])}" y2="${f1(P(50,50,48,-90+72*i+36)[1])}"/>`;}
+   return {L:[['<circle cx="50" cy="50" r="42"/>']],d:d+'</g>'};},
+ goal:()=>({L:[['<rect x="6" y="20" width="88" height="62" rx="2"/>']],d:'<rect x="12" y="26" width="76" height="56"/>'+clipGrid('<rect x="12" y="26" width="76" height="56"/>',12,26,88,82,8,false)+'<line x1="0" y1="84" x2="100" y2="84"/>'}),
+ trophy:()=>({L:[['<path d="M28,10 L72,10 L70,40 Q66,58 50,60 Q34,58 30,40 Z"/>','<rect x="44" y="58" width="12" height="14"/>','<path d="M30,15 Q8,15 13,32 Q18,46 33,45 L32,38 Q23,38 21,31 Q19,22 30,22 Z"/>','<path d="M70,15 Q92,15 87,32 Q82,46 67,45 L68,38 Q77,38 79,31 Q81,22 70,22 Z"/>'],['<rect x="28" y="72" width="44" height="18" rx="2"/>']],d:`<polygon points="${starPts(50,33,11,5)}"/><line x1="34" y1="81" x2="66" y2="81"/>`}),
+ boot:()=>({L:[['<path d="M12,26 Q12,18 20,18 L42,18 Q47,18 47,25 L49,46 Q74,46 87,57 Q95,64 90,72 L12,72 Z"/>']],d:`<rect x="18" y="72" width="8" height="8" ${B}/><rect x="32" y="72" width="8" height="8" ${B}/><rect x="60" y="72" width="8" height="8" ${B}/><rect x="76" y="72" width="8" height="8" ${B}/><path d="M14,60 Q50,66 88,62"/><path d="M50,48 L54,40 M58,49 L62,42 M66,51 L70,45"/><path d="M12,34 Q26,34 28,50 Q30,62 14,60"/>`}),
+ shirt:()=>({L:[['<path d="M34,8 L20,13 L4,30 L15,45 L26,38 L26,92 L74,92 L74,38 L85,45 L96,30 L80,13 L66,8 Q50,22 34,8 Z"/>']],d:'<path d="M34,8 Q50,26 66,8"/><text x="50" y="68" font-size="30" font-weight="bold" font-family="Arial" text-anchor="middle">10</text><line x1="10" y1="34" x2="20" y2="43"/><line x1="90" y1="34" x2="80" y2="43"/>'}),
+ /* jääkiekko */
+ puck:()=>({L:[['<ellipse cx="50" cy="42" rx="42" ry="15"/>','<rect x="8" y="42" width="84" height="18"/>','<ellipse cx="50" cy="60" rx="42" ry="15"/>']],d:'<ellipse cx="50" cy="42" rx="42" ry="15"/><path d="M20,52 L20,64 M34,56 L34,70 M50,57 L50,72 M66,56 L66,70 M80,52 L80,64"/>'}),
+ stick:()=>({L:[['<polygon points="62,4 72,7 48,78 38,75"/>','<path d="M38,74 L48,77 L54,88 Q54,94 48,94 L10,94 Q6,94 6,88 L8,82 Z"/>']],d:'<path d="M60,14 L70,17 M58,20 L68,23 M56,26 L66,29"/><path d="M20,84 L22,94 M30,84 L32,94 M40,84 L42,94"/>'}),
+ helmet:()=>({L:[['<path d="M12,72 Q8,16 52,14 Q90,14 90,54 L90,72 Z"/>'],['<circle cx="42" cy="56" r="10"/>']],d:'<circle cx="42" cy="56" r="4"/><path d="M22,40 Q50,22 82,32"/><path d="M60,46 L92,46 M68,46 L68,74 M78,46 L78,74 M88,46 L88,74 M60,58 L92,58"/><path d="M26,22 L30,30 M40,16 L42,25"/>'}),
+ skate:()=>({L:[['<rect x="8" y="78" width="84" height="7" rx="3.5"/>','<rect x="22" y="66" width="10" height="14"/>','<rect x="66" y="66" width="10" height="14"/>'],['<path d="M20,8 L50,8 L52,42 Q78,44 87,55 Q91,62 87,68 L18,68 Z"/>']],d:'<path d="M32,16 L48,16 M32,24 L48,24 M32,32 L49,32"/><path d="M20,52 L86,58"/><path d="M60,44 Q64,56 62,66"/>'}),
+ hnet:()=>({L:[['<path d="M8,86 L8,34 Q8,18 24,18 L76,18 Q92,18 92,34 L92,86 Z"/>']],d:'<path d="M14,86 L14,35 Q14,24 25,24 L75,24 Q86,24 86,35 L86,86"/>'+clipGrid('<path d="M14,86 L14,35 Q14,24 25,24 L75,24 Q86,24 86,35 L86,86 Z"/>',14,24,86,86,9,true)+'<line x1="0" y1="86" x2="100" y2="86"/>'}),
+ /* dinot */
+ dino:()=>({L:[['<ellipse cx="40" cy="62" rx="28" ry="17"/>','<path d="M52,52 Q66,44 70,20 L84,22 Q82,50 64,66 Z"/>','<ellipse cx="81" cy="18" rx="13" ry="8"/>','<path d="M16,56 Q2,62 0,82 Q12,70 24,70 Z"/>','<rect x="22" y="70" width="10" height="22" rx="3"/>','<rect x="34" y="72" width="10" height="20" rx="3"/>','<rect x="48" y="72" width="10" height="20" rx="3"/>','<rect x="58" y="68" width="10" height="24" rx="3"/>']],d:dot(85,16,2.6)+'<path d="M86,23 Q90,23 92,20"/><circle cx="34" cy="56" r="4"/><circle cx="46" cy="52" r="3"/><circle cx="42" cy="64" r="3"/><path d="M24,88 L24,92 M28,88 L28,92 M62,88 L62,92 M66,88 L66,92"/>'}),
+ trex:()=>({L:[['<path d="M28,46 Q8,56 2,86 Q20,72 36,68 Z"/>','<ellipse cx="44" cy="56" rx="22" ry="18"/>','<rect x="36" y="64" width="11" height="26" rx="3"/>','<rect x="52" y="62" width="11" height="28" rx="3"/>','<rect x="50" y="28" width="16" height="26"/>','<rect x="50" y="10" width="44" height="24" rx="9"/>'],['<path d="M60,48 L74,50 L74,56 L70,56 L70,54 L60,54 Z"/>']],d:dot(64,19,3)+dot(88,16,1.5)+'<path d="M70,28 L93,28"/><path d="M73,28 l2,3.5 l2,-3.5 l2,3.5 l2,-3.5 l2,3.5 l2,-3.5"/><path d="M34,52 Q44,64 56,58"/><path d="M36,90 L50,90 M52,90 L66,90"/>'}),
+ stego:()=>({L:[['<polygon points="20,52 26,30 34,48"/>','<polygon points="32,46 41,20 50,44"/>','<polygon points="48,44 58,22 66,46"/>','<polygon points="63,48 71,32 77,54"/>','<path d="M18,60 L2,50 L4,58 L18,68 Z"/>','<path d="M12,64 Q20,42 50,42 Q76,42 86,60 Q88,68 80,70 L20,70 Q12,70 12,64 Z"/>','<ellipse cx="88" cy="66" rx="10" ry="7"/>','<rect x="22" y="64" width="10" height="24" rx="3"/>','<rect x="36" y="66" width="10" height="22" rx="3"/>','<rect x="56" y="66" width="10" height="22" rx="3"/>','<rect x="70" y="62" width="10" height="26" rx="3"/>']],d:dot(90,64,2)+'<path d="M26,46 L27,36 M41,42 L41,28 M57,42 L58,30 M71,49 L71,40"/><path d="M4,54 L0,46 M8,58 L5,49"/><path d="M18,62 Q50,72 84,62"/>'}),
+ egg:()=>({L:[['<ellipse cx="50" cy="54" rx="32" ry="40"/>']],d:'<polyline points="19,48 29,40 37,50 47,40 57,50 67,40 75,48 81,44"/><circle cx="38" cy="70" r="5"/><circle cx="62" cy="78" r="4"/><circle cx="58" cy="26" r="4"/><circle cx="66" cy="62" r="3"/>'}),
+ /* avaruus */
+ rocket:()=>({L:[['<polygon points="34,52 14,78 16,88 36,76"/>','<polygon points="66,52 86,78 84,88 64,76"/>','<rect x="39" y="72" width="22" height="9" rx="2"/>'],['<path d="M50,3 Q73,24 68,74 L32,74 Q27,24 50,3 Z"/>'],['<circle cx="50" cy="40" r="11"/>']],d:'<circle cx="50" cy="40" r="6"/><path d="M37,22 Q50,27 63,22"/><path d="M33,62 L67,62"/><path d="M42,83 Q44,93 50,99 Q56,93 58,83"/><path d="M46,83 Q50,91 54,83"/>'}),
+ planet:()=>({L:[['<ellipse cx="50" cy="52" rx="47" ry="13"/>'],['<circle cx="50" cy="50" r="27"/>'],['<path d="M3,52 A47,13 0 0 0 97,52 L88,52 A38,8 0 0 1 12,52 Z"/>']],d:'<path d="M28,36 Q50,30 72,36"/><path d="M24,46 Q50,42 76,44"/><circle cx="62" cy="30" r="3"/>'}),
+ ufo:()=>({L:[['<ellipse cx="50" cy="42" rx="20" ry="18"/>'],['<ellipse cx="50" cy="56" rx="46" ry="13"/>'],['<path d="M30,66 L22,84 M70,66 L78,84"/>']],d:`<path d="M38,36 Q44,28 52,28"/><path d="M8,56 Q50,64 92,56"/>${dot(20,60,3.5)}${dot(35,63,3.5)}${dot(50,64,3.5)}${dot(65,63,3.5)}${dot(80,60,3.5)}<path d="M30,66 L22,84 M70,66 L78,84 M18,84 L26,84 M74,84 L82,84"/>`}),
+ moon:()=>({L:[['<path d="M60,6 A44,44 0 1 0 94,72 A36,36 0 1 1 60,6 Z"/>']],d:'<circle cx="30" cy="40" r="6"/><circle cx="42" cy="72" r="8"/><circle cx="22" cy="62" r="4"/>'+dot(56,50,2.6)+'<path d="M54,62 Q60,66 66,62"/>'}),
+ /* työkoneet */
+ excavator:()=>({L:[['<rect x="4" y="72" width="62" height="18" rx="9"/>'],['<rect x="8" y="50" width="54" height="23" rx="3"/>','<rect x="32" y="24" width="28" height="28" rx="3"/>'],['<polygon points="54,58 62,64 88,24 80,18"/>','<polygon points="80,18 88,24 96,48 89,50"/>','<path d="M84,46 L99,48 L97,66 Q86,68 80,58 Z"/>']],d:'<circle cx="15" cy="81" r="5"/><circle cx="28" cy="81" r="5"/><circle cx="41" cy="81" r="5"/><circle cx="55" cy="81" r="5"/><rect x="37" y="29" width="18" height="14"/><path d="M14,50 L14,40"/>'+dot(84,21,3)+dot(92,49,3)+'<path d="M84,66 L82,72 M90,67 L89,73 M96,66 L96,72"/><path d="M12,62 L28,62"/>'}),
+ truck:()=>({L:[['<polygon points="4,22 62,22 60,62 6,62"/>','<rect x="4" y="60" width="90" height="10"/>','<path d="M64,62 L64,32 Q64,28 68,28 L82,28 L95,46 L95,62 Z"/>'],['<circle cx="22" cy="74" r="12"/>','<circle cx="78" cy="74" r="12"/>']],d:'<path d="M70,34 L80,34 L89,46 L70,46 Z"/><path d="M18,24 L19,60 M32,24 L32,60 M46,24 L45,60"/><circle cx="22" cy="74" r="5"/><circle cx="78" cy="74" r="5"/><rect x="88" y="52" width="6" height="5"/>'}),
+ tractor:()=>({L:[['<rect x="10" y="6" width="46" height="7" rx="2"/>','<rect x="14" y="12" width="36" height="42"/>','<rect x="44" y="44" width="48" height="22" rx="4"/>','<rect x="74" y="24" width="6" height="22"/>'],['<circle cx="30" cy="68" r="26"/>','<circle cx="80" cy="78" r="15"/>']],d:'<rect x="20" y="18" width="24" height="24"/><circle cx="30" cy="68" r="17"/><circle cx="30" cy="68" r="6"/><circle cx="80" cy="78" r="8"/><circle cx="80" cy="78" r="3"/><path d="M84,50 L84,62 M88,50 L88,62"/><path d="M30,42 L30,46 M56,68 L60,68 M30,94 L30,98 M4,68 L0,68"/>'}),
+ cone:()=>({L:[['<rect x="10" y="82" width="80" height="10" rx="2"/>'],['<polygon points="40,8 60,8 76,84 24,84"/>']],d:'<path d="M34.6,32 L65.4,32 M31.7,46 L68.3,46 M28.8,60 L71.2,60 M25.9,74 L74.1,74"/>'+'<path d="M36,40 L64,40" stroke-dasharray="2 4"/>'}),
+ /* safari */
+ lion:()=>{const m=[];for(let i=0;i<12;i++){const c=P(50,52,34,i*30);m.push(`<circle cx="${f1(c[0])}" cy="${f1(c[1])}" r="13"/>`);}m.push('<circle cx="50" cy="52" r="36"/>');
+   return {L:[m,['<circle cx="29" cy="32" r="9"/>','<circle cx="71" cy="32" r="9"/>'],['<circle cx="50" cy="54" r="28"/>']],d:'<circle cx="29" cy="32" r="4"/><circle cx="71" cy="32" r="4"/>'+`<ellipse cx="40" cy="48" rx="3" ry="4" ${B}/><ellipse cx="60" cy="48" rx="3" ry="4" ${B}/>`+'<circle cx="44" cy="65" r="7"/><circle cx="56" cy="65" r="7"/>'+`<polygon points="44,57 56,57 50,64" ${B}/>`+'<path d="M45,74 Q50,78 55,74"/>'+dot(41,64,1.2)+dot(45,68,1.2)+dot(55,68,1.2)+dot(59,64,1.2)};},
+ elephant:()=>({L:[['<rect x="16" y="66" width="12" height="26" rx="3"/>','<rect x="30" y="70" width="12" height="22" rx="3"/>','<rect x="50" y="70" width="12" height="22" rx="3"/>','<rect x="62" y="66" width="12" height="26" rx="3"/>','<ellipse cx="44" cy="58" rx="32" ry="24"/>','<circle cx="74" cy="40" r="18"/>','<path d="M82,46 Q96,52 95,86 L87,88 Q88,62 76,54 Z"/>'],['<ellipse cx="64" cy="44" rx="12" ry="18"/>']],d:dot(81,36,2.6)+'<path d="M80,58 Q84,66 92,64"/><path d="M12,52 Q4,58 6,68"/><path d="M88,70 L95,69 M88,77 L95,76"/><path d="M18,88 L18,92 M22,88 L22,92 M64,88 L64,92 M68,88 L68,92"/>'}),
+ giraffe:()=>({L:[['<rect x="22" y="62" width="7" height="32" rx="2"/>','<rect x="32" y="64" width="7" height="30" rx="2"/>','<rect x="48" y="64" width="7" height="30" rx="2"/>','<rect x="58" y="62" width="7" height="32" rx="2"/>','<path d="M18,56 Q10,66 12,76"/>','<ellipse cx="42" cy="58" rx="26" ry="12"/>','<polygon points="52,54 64,58 82,18 74,12"/>','<rect x="72" y="2" width="3" height="10"/>','<rect x="80" y="2" width="3" height="10"/>','<ellipse cx="84" cy="16" rx="13" ry="7" transform="rotate(20 84 16)"/>','<ellipse cx="70" cy="12" rx="5" ry="3"/>']],d:dot(81,12,2.2)+'<circle cx="73.5" cy="3" r="2.6"/><circle cx="81.5" cy="3" r="2.6"/><rect x="26" y="52" width="9" height="7" rx="3"/><rect x="40" y="54" width="10" height="8" rx="3"/><rect x="54" y="52" width="8" height="7" rx="3"/><rect x="31" y="61" width="8" height="5" rx="2"/><rect x="65" y="42" width="6" height="7" rx="2"/><rect x="71" y="28" width="5" height="6" rx="2"/>'}),
+ palm:()=>{const lv=[];[-175,-135,-90,-40,0].forEach(a=>{const t=P(58,30,42,a),c1=P(58,30,30,a-32),c2=P(58,30,30,a+32);lv.push(`<path d="M58,30 Q${f1(c1[0])},${f1(c1[1])} ${f1(t[0])},${f1(t[1])} Q${f1(c2[0])},${f1(c2[1])} 58,30 Z"/>`);});
+   let mid='';[-175,-135,-90,-40,0].forEach(a=>{const t=P(58,30,36,a);mid+=`<line x1="58" y1="30" x2="${f1(t[0])}" y2="${f1(t[1])}"/>`;});
+   return {L:[['<path d="M44,96 Q46,62 55,32 L62,34 Q54,62 57,96 Z"/>'],lv,['<circle cx="53" cy="38" r="5.5"/>','<circle cx="63" cy="39" r="5.5"/>']],d:mid+'<path d="M46,84 L56,84 M47,72 L56,72 M49,60 L57,60 M51,48 L59,48"/><path d="M30,96 L72,96"/>'};},
+ /* joulu */
+ xtree:()=>({L:[['<rect x="42" y="80" width="16" height="14"/>'],['<polygon points="50,10 70,34 62,34 80,58 70,58 90,84 10,84 30,58 20,58 38,34 30,34"/>'],[`<polygon points="${starPts(50,10,10,4.5)}"/>`]],d:'<circle cx="44" cy="30" r="3.5"/><circle cx="58" cy="44" r="3.5"/><circle cx="36" cy="54" r="3.5"/><circle cx="64" cy="66" r="3.5"/><circle cx="30" cy="76" r="3.5"/><circle cx="48" cy="70" r="3.5"/><circle cx="76" cy="80" r="3.5"/><path d="M38,40 Q50,48 62,38"/><path d="M28,64 Q50,74 74,62"/>'}),
+ gift:()=>({L:[['<rect x="14" y="42" width="72" height="48"/>'],['<rect x="10" y="30" width="80" height="14"/>'],['<ellipse cx="38" cy="22" rx="13" ry="7" transform="rotate(20 38 22)"/>','<ellipse cx="62" cy="22" rx="13" ry="7" transform="rotate(-20 62 22)"/>'],['<circle cx="50" cy="28" r="6"/>']],d:'<path d="M45,34 L45,90 M55,34 L55,90"/><path d="M45,30 L40,44 M55,30 L60,44" stroke-dasharray="0"/><circle cx="26" cy="60" r="3"/><circle cx="72" cy="74" r="3"/><circle cx="30" cy="80" r="2"/><circle cx="70" cy="54" r="2"/>'}),
+ snowman:()=>({L:[['<circle cx="50" cy="76" r="20"/>'],['<circle cx="50" cy="48" r="15"/>'],['<circle cx="50" cy="25" r="11"/>'],['<rect x="36" y="13" width="28" height="4" rx="1"/>','<rect x="41" y="0" width="18" height="14"/>']],d:dot(46,23,1.8)+dot(54,23,1.8)+'<polygon points="50,26 60,28 50,30"/>'+dot(50,44,2.4)+dot(50,52,2.4)+dot(50,70,2.6)+dot(50,80,2.6)+'<path d="M36,46 L16,34 M22,38 L20,30 M64,46 L84,34 M78,38 L80,30"/><path d="M40,36 Q50,40 60,36"/><path d="M41,9 L59,9"/>'}),
+ bell:()=>({L:[['<ellipse cx="38" cy="10" rx="11" ry="6" transform="rotate(20 38 10)"/>','<ellipse cx="62" cy="10" rx="11" ry="6" transform="rotate(-20 62 10)"/>'],['<circle cx="50" cy="82" r="8"/>'],['<path d="M50,14 Q30,16 28,42 Q26,64 12,76 L88,76 Q74,64 72,42 Q70,16 50,14 Z"/>'],['<circle cx="50" cy="14" r="5"/>']],d:'<path d="M18,70 Q50,78 82,70"/><path d="M28,50 Q50,56 72,50"/><circle cx="40" cy="62" r="2.5"/><circle cx="50" cy="64" r="2.5"/><circle cx="60" cy="62" r="2.5"/><path d="M38,26 Q34,34 34,44"/>'}),
+ /* halloween */
+ pumpkin:()=>({L:[['<path d="M46,24 Q45,8 56,4 L59,9 Q52,12 54,24 Z"/>'],['<ellipse cx="32" cy="58" rx="25" ry="31"/>','<ellipse cx="68" cy="58" rx="25" ry="31"/>'],['<ellipse cx="50" cy="58" rx="18" ry="33"/>']],d:`<polygon points="30,50 42,50 36,40" ${B}/><polygon points="58,50 70,50 64,40" ${B}/><polygon points="47,58 53,58 50,53" ${B}/><path d="M28,66 Q50,84 72,66 L66,68 L64,73 L58,70 L54,76 L50,71 L46,76 L42,70 L36,73 L34,68 Z" ${B}/><path d="M58,8 Q66,6 70,12"/>`}),
+ ghost:()=>({L:[['<path d="M18,90 L18,44 Q18,8 50,8 Q82,8 82,44 L82,90 Q74,82 66,90 Q58,82 50,90 Q42,82 34,90 Q26,82 18,90 Z"/>','<path d="M18,50 Q6,52 4,44 Q12,46 18,40 Z"/>','<path d="M82,50 Q94,52 96,44 Q88,46 82,40 Z"/>']],d:`<ellipse cx="40" cy="38" rx="5" ry="7" ${B}/><ellipse cx="60" cy="38" rx="5" ry="7" ${B}/><ellipse cx="50" cy="56" rx="6" ry="8" ${B}/><circle cx="41.5" cy="35" r="1.6" fill="#fff" stroke="none"/><circle cx="61.5" cy="35" r="1.6" fill="#fff" stroke="none"/>`}),
+ bat:()=>({L:[['<path d="M50,44 Q62,28 80,28 Q93,30 99,44 Q90,44 88,53 Q82,48 76,57 Q70,50 64,59 Q58,52 50,58 Z"/>','<path d="M50,44 Q38,28 20,28 Q7,30 1,44 Q10,44 12,53 Q18,48 24,57 Q30,50 36,59 Q42,52 50,58 Z"/>'],['<polygon points="42,40 43,26 49,37"/>','<polygon points="58,40 57,26 51,37"/>','<ellipse cx="50" cy="50" rx="10" ry="14"/>']],d:dot(46,46,2.4)+dot(54,46,2.4)+'<path d="M47,54 L48,58 L49,54 M51,54 L52,58 L53,54"/><path d="M80,30 Q78,44 76,57 M64,34 Q65,48 64,59 M20,30 Q22,44 24,57 M36,34 Q35,48 36,59"/>'}),
+ witchhat:()=>({L:[['<ellipse cx="50" cy="80" rx="47" ry="11"/>'],['<path d="M28,80 Q38,50 46,24 Q52,6 76,6 Q60,14 58,30 Q64,56 72,80 Z"/>'],['<path d="M29,76 Q50,82 71,76 L68,64 Q50,70 33,64 Z"/>']],d:'<rect x="44" y="65" width="12" height="11"/><rect x="47.5" y="68" width="5" height="5"/>'+`<polygon points="${starPts(42,44,5,2.2)}"/><polygon points="${starPts(56,34,4,1.8)}"/>`+'<path d="M8,82 Q50,92 92,82"/>'})
+};
+const ICON_WORD={ball:'PALLO',goal:'MAALI',trophy:'POKAALI',boot:'KENKÄ',shirt:'PAITA',puck:'KIEKKO',stick:'MAILA',helmet:'KYPÄRÄ',skate:'LUISTIN',hnet:'MAALI',dino:'DINO',trex:'T-REX',stego:'STEGOSAURUS',egg:'MUNA',rocket:'RAKETTI',planet:'PLANEETTA',ufo:'UFO',moon:'KUU',excavator:'KAIVINKONE',truck:'KUORMA-AUTO',tractor:'TRAKTORI',cone:'KARTIO',lion:'LEIJONA',elephant:'NORSU',giraffe:'KIRAFFI',palm:'PALMU',xtree:'KUUSI',gift:'LAHJA',snowman:'LUMIUKKO',bell:'KELLO',pumpkin:'KURPITSA',ghost:'KUMMITUS',bat:'LEPAKKO',witchhat:'NOITAHATTU'};
+
+function icon(name,cx,cy,size,o={}){const def=ICONS[name]();const s=size/100;const rot=o.rot||0,fx=o.flip?-1:1;
+  const ow=(4.4/s).toFixed(2),dw=(2/s).toFixed(2);let inner='';
+  def.L.forEach(layer=>{const sh=layer.join('');inner+=`<g fill="#000" stroke="#000" stroke-width="${ow}">${sh}</g><g fill="#fff" stroke="none">${sh}</g>`;});
+  inner+=`<g fill="none" stroke="#000" stroke-width="${dw}">${def.d||''}</g>`;
+  return `<g transform="translate(${f1(cx)},${f1(cy)}) rotate(${rot}) scale(${(fx*s).toFixed(3)},${s.toFixed(3)}) translate(-50,-50)" stroke-linejoin="round" stroke-linecap="round">${inner}</g>`;}
+const iconSvg=(name,w)=>`<svg width="${w}" height="${w}" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">${icon(name,50,50,92)}</svg>`;
+
+/* ---------- teemat ---------- */
+const THEMES={
+ jalkapallo:{name:'Jalkapallo',icons:['ball','shirt','boot','trophy'],maze:['ball','goal'],mazeText:'Vie pallo maaliin',draw:'Piirrä itsesi pelaamassa jalkapalloa.'},
+ jaakiekko:{name:'Jääkiekko',icons:['puck','helmet','skate','stick'],maze:['puck','hnet'],mazeText:'Vie kiekko maaliin',draw:'Piirrä itsesi pelaamassa jääkiekkoa.'},
+ dinot:{name:'Dinosaurukset',icons:['trex','dino','stego','egg'],maze:['trex','egg'],mazeText:'Auta dinoa löytämään munansa',draw:'Piirrä oma dinosaurus.'},
+ avaruus:{name:'Avaruus',icons:['rocket','planet','ufo','moon'],maze:['rocket','moon'],mazeText:'Lennätä raketti kuuhun',draw:'Piirrä oma avaruusalus.'},
+ tyokoneet:{name:'Työkoneet',icons:['excavator','truck','tractor','cone'],maze:['excavator','truck'],mazeText:'Aja kaivinkone kuorma-auton luo',draw:'Piirrä oma työkone.'},
+ safari:{name:'Safari',icons:['lion','elephant','giraffe','palm'],maze:['elephant','palm'],mazeText:'Auta norsu palmun luo',draw:'Piirrä oma safarieläin.'},
+ joulu:{name:'Joulu',icons:['xtree','gift','snowman','bell'],maze:['gift','xtree'],mazeText:'Vie lahja kuusen alle',draw:'Piirrä oma joulukuusi ja lahjat.'},
+ halloween:{name:'Halloween',icons:['pumpkin','ghost','bat','witchhat'],maze:['ghost','pumpkin'],mazeText:'Auta kummitus kurpitsan luo',draw:'Piirrä oma kummitus tai kurpitsa.'}
+};
+const NLEV=5;
+
+/* ---------- viivat ---------- */
+function wavePath(type,x0,x1,y,a){const p=[];const N=260;for(let i=0;i<=N;i++){const t=i/N;let x=x0+(x1-x0)*t,yy=y;
+  switch(type){
+   case 'wave':yy=y+a*Math.sin(t*Math.PI*4);break;
+   case 'bigwave':yy=y+a*Math.sin(t*Math.PI*2);break;
+   case 'zigzag':{const f=(t*8)%1;yy=y+a*(f<.5?(4*f-1):(3-4*f));break;}
+   case 'bigzig':{const f=(t*4)%1;yy=y+a*(f<.5?(4*f-1):(3-4*f));break;}
+   case 'steps':{const f=(t*6)%1;yy=y+(f<.5?-a:a);break;}
+   case 'bumps':yy=y+a*.6-a*1.2*Math.abs(Math.sin(t*Math.PI*5));break;
+   case 'loops':{const th=t*6*2*Math.PI;x=x0+(x1-x0)*t-a*.6*Math.sin(th);yy=y-a*.8*Math.cos(th)+a*.3;break;}
+  }
+  p.push(f1(x)+','+f1(yy));}return p.join(' ');}
+const LINE_TYPES=[['straight','straight','bigwave','straight'],['straight','bigwave','bigzig','bigwave'],['wave','bigzig','bumps','wave'],['zigzag','bumps','steps','wave'],['loops','steps','zigzag','loops','bumps']];
+const CUT_TYPES=[['straight','straight','straight'],['straight','bigwave','straight'],['bigwave','bigzig','wave'],['zigzag','wave','steps'],['zigzag','steps','bumps','wave']];
+
+/* ---------- kuviot ---------- */
+const SHP={
+ 'ympyrä':r=>`<circle cx="0" cy="0" r="${f1(r)}"/>`,
+ 'neliö':r=>`<rect x="${f1(-r*.85)}" y="${f1(-r*.85)}" width="${f1(r*1.7)}" height="${f1(r*1.7)}"/>`,
+ 'kolmio':r=>`<polygon points="0,${f1(-r)} ${f1(r*.98)},${f1(r*.72)} ${f1(-r*.98)},${f1(r*.72)}"/>`,
+ 'tähti':r=>`<polygon points="${starPts(0,r*.08,r*1.1,r*.45)}"/>`,
+ 'sydän':r=>`<path d="M0,${f1(r*.9)} C${f1(-r*1.4)},${f1(-r*.1)} ${f1(-r*.6)},${f1(-r*1.1)} 0,${f1(-r*.35)} C${f1(r*.6)},${f1(-r*1.1)} ${f1(r*1.4)},${f1(-r*.1)} 0,${f1(r*.9)} Z"/>`
+};
+const SHP_PL={'ympyrä':'ympyrät','neliö':'neliöt','kolmio':'kolmiot','tähti':'tähdet','sydän':'sydämet'};
+function shape(t,x,y,r,rot=0){return `<g transform="translate(${f1(x)},${f1(y)}) rotate(${rot})" fill="#fff" stroke="#000" stroke-width="2.6" stroke-linejoin="round">${SHP[t](r)}</g>`;}
+
+/* ---------- tunteet ---------- */
+function face(cx,cy,r,e){let s=`<g fill="none" stroke="#000" stroke-width="3" stroke-linecap="round"><circle cx="${f1(cx)}" cy="${f1(cy)}" r="${f1(r)}"/>`;
+  if(e==='tyhjä')return s+'</g>';
+  const Q=(a,b)=>f1(cx+a*r)+','+f1(cy+b*r);const ex=r*.35,ey=cy-r*.22,er=r*(e==='yllättynyt'||e==='pelokas'?.11:.08);
+  if(e!=='väsynyt')s+=`<circle cx="${f1(cx-ex)}" cy="${f1(ey)}" r="${f1(er)}" fill="#000"/><circle cx="${f1(cx+ex)}" cy="${f1(ey)}" r="${f1(er)}" fill="#000"/>`;
+  if(e==='iloinen')s+=`<path d="M${Q(-.45,.2)} Q${Q(0,.8)} ${Q(.45,.2)}"/>`;
+  if(e==='surullinen')s+=`<path d="M${Q(-.4,.58)} Q${Q(0,.12)} ${Q(.4,.58)}"/><path d="M${Q(-.55,-.5)} L${Q(-.18,-.62)} M${Q(.55,-.5)} L${Q(.18,-.62)}"/>`;
+  if(e==='vihainen')s+=`<path d="M${Q(-.6,-.62)} L${Q(-.15,-.4)} M${Q(.6,-.62)} L${Q(.15,-.4)}"/><path d="M${Q(-.35,.52)} Q${Q(0,.3)} ${Q(.35,.52)}"/>`;
+  if(e==='yllättynyt')s+=`<circle cx="${f1(cx)}" cy="${f1(cy+r*.42)}" r="${f1(r*.17)}"/><path d="M${Q(-.55,-.55)} Q${Q(-.35,-.72)} ${Q(-.15,-.55)} M${Q(.15,-.55)} Q${Q(.35,-.72)} ${Q(.55,-.55)}"/>`;
+  if(e==='pelokas')s+=`<path d="M${Q(-.4,.5)} q${f1(r*.1)},${f1(-r*.12)} ${f1(r*.2)},0 q${f1(r*.1)},${f1(r*.12)} ${f1(r*.2)},0 q${f1(r*.1)},${f1(-r*.12)} ${f1(r*.2)},0 q${f1(r*.1)},${f1(r*.12)} ${f1(r*.2)},0"/><path d="M${Q(-.55,-.5)} L${Q(-.15,-.65)} M${Q(.55,-.5)} L${Q(.15,-.65)}"/>`;
+  if(e==='väsynyt')s+=`<path d="M${Q(-.5,-.2)} Q${Q(-.35,-.08)} ${Q(-.2,-.2)} M${Q(.2,-.2)} Q${Q(.35,-.08)} ${Q(.5,-.2)}"/><ellipse cx="${f1(cx)}" cy="${f1(cy+r*.45)}" rx="${f1(r*.12)}" ry="${f1(r*.08)}"/><text x="${f1(cx+r*.75)}" y="${f1(cy-r*.7)}" font-size="${f1(r*.35)}" font-family="Arial" fill="#000" stroke="none">z</text>`;
+  return s+'</g>';}
+
+/* ---------- pisteestä pisteeseen ---------- */
+function starArr(n,R1,r){const p=[];for(let i=0;i<2*n;i++){const a=-Math.PI/2+i*Math.PI/n;const rr=i%2?r:R1;p.push([50+rr*Math.cos(a),52+rr*Math.sin(a)]);}return p;}
+function heartArr(n){const p=[];for(let i=0;i<n;i++){const t=Math.PI*2*i/n;p.push([50+46*Math.pow(Math.sin(t),3)*.95,48-(13*Math.cos(t)-5*Math.cos(2*t)-2*Math.cos(3*t)-Math.cos(4*t))*3.1]);}return p;}
+const DOTSHAPES=[
+ [[[50,8],[90,50],[50,92],[10,50]], [[20,92],[20,50],[50,18],[80,50],[80,92]]],
+ [[[10,88],[10,32],[30,56],[50,16],[70,56],[90,32],[90,88]], [[50,6],[92,46],[66,46],[66,94],[34,94],[34,46],[8,46]]],
+ [starArr(5,48,20), [[8,30],[28,50],[8,70],[30,64],[50,74],[75,68],[94,50],[75,32],[50,26],[30,36]]],
+ [[[50,4],[62,20],[66,40],[66,62],[80,78],[80,92],[64,84],[58,94],[42,94],[36,84],[20,92],[20,78],[34,62],[34,40],[38,20]],
+  [[50,4],[68,30],[60,30],[78,52],[66,52],[88,78],[56,78],[56,96],[44,96],[44,78],[12,78],[34,52],[22,52],[40,30],[32,30]]],
+ [starArr(8,48,26), starArr(9,48,32)]
+];
+
+/* ---------- symmetria ---------- */
+const SYM=[
+ {hx:3,ny:5,shapes:[[[3,0],[1,2],[1,5],[3,5]],[[3,1],[0,3],[3,5]]]},
+ {hx:4,ny:6,shapes:[[[4,0],[1,3],[1,6],[4,6]],[[4,0],[1,3],[4,6]]]},
+ {hx:5,ny:7,shapes:[[[5,0],[2,3],[3,3],[1,6],[4,6],[4,7],[5,7]],[[5,2],[4,1],[2,1],[1,2],[1,3],[5,7]]]},
+ {hx:6,ny:8,shapes:[[[6,0],[4,2],[4,6],[2,8],[4,8],[5,7],[6,7]],[[6,3],[4,3],[4,1],[3,1],[3,2],[2,2],[2,1],[1,1],[1,8],[6,8]]]},
+ {hx:7,ny:9,shapes:[[[7,0],[5,2],[6,3],[3,3],[1,5],[4,5],[4,9],[7,9]],[[7,1],[4,0],[1,2],[3,4],[1,6],[4,9],[7,7]]]}
+];
+
+/* ---------- TEHTÄVÄT (d = 0–4) ---------- */
+const TASKS=[
+ {id:'letters',area:'Kielten rikas maailma',name:'Kirjainharjoitus',fn(W,H,d,T,ctx){
+   let L=(ctx.letters||'A').toUpperCase().replace(/[^A-ZÅÄÖ]/g,'');if(!L)L='A';const uniq=[...new Set(L.split(''))];
+   const rows=clamp(Math.floor(H/[180,150,125,110,100][d]),1,4);const rh=H/rows;let s='';
+   for(let r=0;r<rows;r++){const ch=uniq[r%uniq.length];const fs=Math.min(rh*.78,(W-6)/([4,5,6,7,8][d]*.85));const base=rh*r+rh*.86;const top=base-fs*.72;
+     s+=`<line x1="0" y1="${f1(base)}" x2="${W}" y2="${f1(base)}" stroke="#000" stroke-width="1.5"/><line x1="0" y1="${f1(top)}" x2="${W}" y2="${f1(top)}" stroke="#999" stroke-width="1" stroke-dasharray="4 5"/>`;
+     const step=fs*.85;const n=Math.floor((W-6)/step);const empty=[0,0,1,2,3][d];
+     for(let i=0;i<n-empty;i++)s+=txt(step*(i+.5)+3,base,ch,fs,{base:'alphabetic',fill:i===0?'#000':'#c4c4c4',weight:i===0?'bold':'normal'});}
+   return {instr:'Kirjainharjoitus: piirrä kirjaimet harmaiden päälle'+(d>=2?' ja lopuksi itse tyhjään tilaan.':'.')+' Ensimmäinen on malli.',svg:s};}},
+ {id:'sound',area:'Kielten rikas maailma',name:'Alkuäänne',fn(W,H,d,T){
+   const groups={};Object.entries(ICON_WORD).forEach(([k,w])=>{(groups[w[0]]=groups[w[0]]||[]).push(k);});
+   const cand=[...new Set(T.icons.map(k=>ICON_WORD[k][0]))].filter(l=>groups[l].length>=2);const letter=pick(cand.length?cand:['K']);
+   const right=shuffle(groups[letter]).slice(0,[2,2,3,3,3][d]);
+   const others=shuffle(Object.keys(ICONS).filter(k=>!groups[letter].includes(k))).slice(0,[3,4,5,6,7][d]);
+   const items=shuffle(right.concat(others));const lw=Math.min(W*.24,H*.8);let s='';
+   s+=`<rect x="3" y="3" width="${f1(lw-6)}" height="${f1(H-6)}" rx="10" fill="none" stroke="#000" stroke-width="2"/>`+txt(lw/2,H/2,letter,Math.min(lw*.7,H*.5),{weight:'bold'});
+   const G=gridPos(items.length,lw+4,4,W-lw-8,H-8);const words=d<=1;
+   items.forEach((k,i)=>{const [x,y]=G.pts[i];const sz=G.cs*(words?.62:.8);s+=icon(k,x,y-(words?G.cs*.08:0),sz);
+     if(words)s+=txt(x,y+G.cs*.36,ICON_WORD[k],Math.min(G.cs*.12,15),{weight:'bold'});});
+   return {instr:`Alkuäänne: sano kuvien nimet ääneen ja ympyröi ne, jotka alkavat ${letter}-äänteellä.`,svg:s};}},
+ {id:'count',area:'Matematiikka ja ajattelu',name:'Laske ja väritä',fn(W,H,d,T){
+   const n=[4,6,7,9,10][d];const k=ri(Math.min(2,n-1),Math.min(n-1,[3,4,5,7,8][d]));const bw=Math.min(W*.28,H*.9);
+   let s=`<rect x="3" y="3" width="${f1(bw-6)}" height="${f1(H-6)}" rx="10" fill="none" stroke="#000" stroke-width="2"/>`;
+   s+=txt(bw/2,H*.38,k,Math.min(bw*.6,H*.42),{weight:'bold'});
+   if(d<=2){const g=gridPos(k,10,H*.66,bw-20,H*.28);g.pts.forEach(p=>s+=`<circle cx="${f1(p[0])}" cy="${f1(p[1])}" r="${f1(Math.min(g.cs*.3,9))}" fill="#000"/>`);}
+   const G=gridPos(n,bw+5,5,W-bw-10,H-10);
+   if(d<=1){G.pts.forEach(p=>s+=icon(T.icons[0],p[0],p[1],G.cs*.78));}
+   else{const ics=shuffle(T.icons).slice(0,d===2?1:2);G.pts.forEach((p,i)=>s+=icon(ics[i%ics.length],p[0],p[1],G.cs*.78));}
+   return {instr:`Laske ja väritä ${k} kuvaa.`,svg:s};}},
+ {id:'compare',area:'Matematiikka ja ajattelu',name:'Kumpi on enemmän?',fn(W,H,d,T){
+   const lo=[1,1,2,3,3][d],hi=[4,5,7,9,10][d],md=[3,2,2,1,1][d];let a,b;do{a=ri(lo,hi);b=ri(lo,hi);}while(Math.abs(a-b)<md);
+   const bw=(W-18)/2;let s='';
+   [[a,6],[b,12+bw]].forEach(([n,x],i)=>{s+=`<rect x="${f1(x)}" y="5" width="${f1(bw)}" height="${f1(H-10)}" rx="14" fill="none" stroke="#000" stroke-width="2.5"/>`;
+     const ordered=d<=1;const slots=ordered?n:Math.max(n,Math.ceil(hi*1.3));const G=gridPos(slots,x+8,13,bw-16,H-26);
+     let pos=ordered?G.pts.slice(0,n):shuffle(G.pts).slice(0,n);const ic=d<=1?T.icons[0]:T.icons[i];let sz=G.cs*.75;
+     if(d>=3){const few=n<Math.max(a,b);if(few){const G2=gridPos(n,x+8,13,bw-16,H-26);pos=G2.pts;sz=G2.cs*.7;}else sz=G.cs*.6;}
+     pos.forEach(p=>s+=icon(ic,p[0],p[1],sz));});
+   return {instr:'Kumpi on enemmän? Laske ja ympyröi laatikko, jossa on enemmän kuvia.',svg:s};}},
+ {id:'pattern',area:'Matematiikka ja ajattelu',name:'Jatka jonoa',fn(W,H,d,T){
+   const pats=[['AB'],['AB','AAB'],['AAB','ABB','ABC'],['ABC','AABB','ABCC'],['AABB','ABAC','ABCC','AABC']][d];const miss=[1,1,2,2,3][d];
+   const rows=clamp(Math.floor(H/105),1,3);const rh=H/rows;let s='';
+   for(let r=0;r<rows;r++){const p=pick(pats);let slots=clamp(Math.floor(W/Math.min(rh*.85,85)),6,10);slots=Math.min(12,Math.max(slots,2*p.length+miss));
+     const step=W/slots;const size=Math.min(step,rh)*.8;const ic=shuffle(T.icons);
+     for(let i=0;i<slots;i++){const cx=step*(i+.5),cy=rh*(r+.5);
+       if(i<slots-miss)s+=icon(ic['ABC'.indexOf(p[i%p.length])],cx,cy,size);
+       else s+=`<rect x="${f1(cx-size/2)}" y="${f1(cy-size/2)}" width="${f1(size)}" height="${f1(size)}" rx="8" fill="none" stroke="#000" stroke-width="2" stroke-dasharray="8 6"/>`;}}
+   return {instr:'Jatka jonoa: piirrä tyhjiin ruutuihin, mikä tulee seuraavaksi.',svg:s};}},
+ {id:'numbers',area:'Matematiikka ja ajattelu',name:'Numeroharjoitus',fn(W,H,d,T){
+   let nums=[[1,2,3],[1,2,3,4],[1,2,3,4,5],shuffle([1,2,3,4,5,6,7]).slice(0,5).sort((a,b)=>a-b),shuffle([1,2,3,4,5,6,7,8,9,10]).slice(0,5).sort((a,b)=>a-b)][d];
+   const rows=Math.min(nums.length,Math.max(1,Math.floor(H/62)));nums=nums.slice(0,rows);const rh=H/rows;const aw=W*.46;let s='';const ic=T.icons[0];
+   nums.forEach((n,r)=>{const cy=rh*(r+.5);const sz=Math.min(rh*.7,aw/Math.max(n,3)*.95);
+     for(let i=0;i<n;i++)s+=icon(ic,6+sz*(i+.5)*1.02,cy,sz);
+     const fs=rh*.8;const x0=aw+10;const step=fs*.75;const cnt=Math.floor((W-x0)/step);
+     for(let i=0;i<cnt;i++)s+=txt(x0+step*(i+.5),cy,n,fs,{fill:i===0?'#000':'#c4c4c4',weight:i===0?'bold':'normal'});
+     if(r<rows-1)s+=`<line x1="0" y1="${f1(rh*(r+1))}" x2="${W}" y2="${f1(rh*(r+1))}" stroke="#aaa" stroke-width="1" stroke-dasharray="3 5"/>`;});
+   return {instr:'Laske kuvat ääneen ja piirrä numerot harmaiden päälle.',svg:s};}},
+ {id:'match',area:'Matematiikka ja ajattelu',name:'Yhdistä määrä ja numero',fn(W,H,d,T){
+   const Rr=Math.max(2,Math.min([3,3,4,5,5][d],Math.floor(H/55)));const nums=shuffle(Array.from({length:[3,5,6,8,10][d]},(_,i)=>i+1)).slice(0,Rr);
+   const right=shuffle(nums);const rh=H/Rr;const bw=W*.5;let s='';const ic=T.icons[0];const fs=Math.min(rh*.7,60);
+   nums.forEach((n,r)=>{const y=rh*r;s+=`<rect x="4" y="${f1(y+rh*.08)}" width="${f1(bw)}" height="${f1(rh*.84)}" rx="8" fill="none" stroke="#000" stroke-width="2"/>`;
+     const G=gridPos(n,10,y+rh*.12,bw-14,rh*.76);G.pts.forEach(p=>s+=icon(ic,p[0],p[1],Math.min(G.cs*.82,rh*.6)));
+     s+=`<circle cx="${f1(bw+16)}" cy="${f1(y+rh/2)}" r="5" fill="#000"/>`;});
+   right.forEach((n,r)=>{const cy=rh*(r+.5);s+=`<circle cx="${f1(W-fs*1.3-14)}" cy="${f1(cy)}" r="5" fill="#000"/>`+txt(W-fs*.6,cy,n,fs,{weight:'bold'});});
+   return {instr:'Yhdistä viivalla kuvaryhmä ja oikea numero.',svg:s};}},
+ {id:'shapes',area:'Matematiikka ja ajattelu',name:'Etsi muodot',fn(W,H,d,T){
+   const all=['ympyrä','neliö','kolmio','tähti','sydän'];const types=all.slice(0,[3,3,4,4,5][d]);
+   const target=pick(types);const n=[6,9,12,14,16][d];const tc=ri(2,Math.ceil(n/3));const others=types.filter(t=>t!==target);
+   const list=shuffle(Array.from({length:n},(_,i)=>i<tc?target:pick(others)));
+   const lw=Math.min(W*.22,110);let s=txt(lw/2,H*.2,'Etsi:',Math.min(18,lw*.2),{weight:'bold'})+shape(target,lw/2,H*.55,Math.min(lw*.3,H*.22));
+   s+=`<line x1="${f1(lw)}" y1="6" x2="${f1(lw)}" y2="${f1(H-6)}" stroke="#999" stroke-width="1.5" stroke-dasharray="4 4"/>`;
+   const G=gridPos(n,lw+6,4,W-lw-10,H-8);
+   list.forEach((t,i)=>{const [x,y]=G.pts[i];const j=d===0?0:G.cs*.1;const r=G.cs*(d<=1?.33:.24+R()*.12);s+=shape(t,x+(R()*2-1)*j,y+(R()*2-1)*j,r,d>=3?ri(-40,40):0);});
+   return {instr:`Väritä kaikki ${SHP_PL[target]}.`,svg:s};}},
+ {id:'odd',area:'Matematiikka ja ajattelu',name:'Mikä on eri?',fn(W,H,d,T){
+   const rows=clamp(Math.floor(H/80),1,4);const m=[3,4,5,5,6][d];const rh=H/rows;const step=W/m;const size=Math.min(step,rh)*.74;let s='';
+   for(let r=0;r<rows;r++){const base=pick(T.icons);const odd=ri(0,m-1);const other=pick(T.icons.filter(x=>x!==base));const cy=rh*(r+.5);
+     for(let i=0;i<m;i++){const cx=step*(i+.5);
+       if(i!==odd)s+=icon(base,cx,cy,size);
+       else if(d<=1)s+=icon(other,cx,cy,size);
+       else s+=icon(base,cx,cy,size*[1,1,.66,.76,.84][d]);}
+     if(r<rows-1)s+=`<line x1="0" y1="${f1(rh*(r+1))}" x2="${W}" y2="${f1(rh*(r+1))}" stroke="#aaa" stroke-width="1" stroke-dasharray="3 5"/>`;}
+   return {instr:d<=1?'Ympyröi jokaiselta riviltä kuva, joka on erilainen kuin muut.':'Ympyröi jokaiselta riviltä kuva, joka on pienempi kuin muut.',svg:s};}},
+ {id:'coloring',area:'Ilmaisun monet muodot',name:'Värityskuva',fn(W,H,d,T){
+   const ic=shuffle(T.icons);let s='';
+   if(d===0){s+=icon(ic[0],W/2,H/2,Math.min(W,H)*.92);}
+   else{const main=Math.min(W*.62,H)*.86;s+=icon(ic[0],W*.36,H/2,main);const sm=Math.min(main*.48,H*.44);
+     const spots=[[[W*.82,H*.5]],[[W*.8,H*.27],[W*.8,H*.73]],[[W*.8,H*.2],[W*.8,H*.52],[W*.8,H*.84]],[[W*.78,H*.2],[W*.92,H*.52],[W*.76,H*.82],[W*.08,H*.14]]][d-1];
+     const k=spots.length;spots.forEach((p,i)=>s+=icon(ic[1+(i%3)],p[0],p[1],k<=2?sm:sm*.7));}
+   return {instr:'Värityskuva: väritä kuva omilla väreilläsi.',svg:s};}},
+ {id:'draw',area:'Ilmaisun monet muodot',name:'Piirrä itse',fn(W,H,d,T){
+   const c=Math.min(W,H)*.15;let s=`<rect x="4" y="4" width="${W-8}" height="${H-8}" rx="14" fill="none" stroke="#000" stroke-width="2.5"/>`;
+   s+=icon(T.icons[0],c*.75+6,c*.75+6,c)+icon(T.icons[1],W-c*.75-6,H-c*.75-6,c);
+   return {instr:T.draw,svg:s};}},
+ {id:'sym',area:'Ilmaisun monet muodot',name:'Piirrä toinen puoli',fn(W,H,d,T){
+   const S=SYM[d];const sh=pick(S.shapes);const cs=Math.min((W-20)/(2*S.hx),(H-16)/S.ny);const ox=(W-2*S.hx*cs)/2,oy=(H-S.ny*cs)/2;let s='';
+   for(let x=0;x<=2*S.hx;x++)for(let y=0;y<=S.ny;y++)s+=`<circle cx="${f1(ox+x*cs)}" cy="${f1(oy+y*cs)}" r="${d<=1?3.4:2.6}" fill="#000"/>`;
+   s+=`<line x1="${f1(ox+S.hx*cs)}" y1="${f1(oy-6)}" x2="${f1(ox+S.hx*cs)}" y2="${f1(oy+S.ny*cs+6)}" stroke="#666" stroke-width="1.5" stroke-dasharray="6 5"/>`;
+   s+=`<polyline points="${sh.map(p=>f1(ox+p[0]*cs)+','+f1(oy+p[1]*cs)).join(' ')}" fill="none" stroke="#000" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>`;
+   return {instr:'Piirrä kuvan toinen puoli pisteiden avulla.',svg:s};}},
+ {id:'dots',area:'Ilmaisun monet muodot',name:'Pisteestä pisteeseen',fn(W,H,d,T){
+   const p0=pick(DOTSHAPES[d]);const sz=Math.min(W,H)*.86;const ox=(W-sz)/2,oy=(H-sz)/2;const Pp=p0.map(p=>[ox+p[0]/100*sz,oy+p[1]/100*sz]);
+   const cx=Pp.reduce((a,p)=>a+p[0],0)/Pp.length,cy=Pp.reduce((a,p)=>a+p[1],0)/Pp.length;let s='';const fs=Math.max(12,Math.min(20,sz*.06));
+   Pp.forEach((p,i)=>{const dx=p[0]-cx,dy=p[1]-cy,l=Math.hypot(dx,dy)||1;
+     s+=`<circle cx="${f1(p[0])}" cy="${f1(p[1])}" r="${i===0?5.5:4}" fill="#000"/>`+txt(p[0]+dx/l*fs*.95,p[1]+dy/l*fs*.95,i+1,fs,{weight:i===0?'bold':'normal'});});
+   return {instr:`Yhdistä pisteet järjestyksessä 1–${Pp.length} ja takaisin 1:een. Mikä kuva syntyi?`,svg:s};}},
+ {id:'lines',area:'Kasvan, liikun ja kehityn',name:'Viivaharjoitus',fn(W,H,d,T){
+   const types=LINE_TYPES[d];const rows=clamp(Math.floor(H/75),2,5);const rh=H/rows;const isz=Math.min(rh*.7,W*.12);let s='';
+   for(let r=0;r<rows;r++){const y=rh*(r+.5);const t=types[r%types.length];s+=icon(T.icons[0],isz/2+3,y,isz)+icon(T.icons[1],W-isz/2-3,y,isz);
+     s+=t==='straight'?`<line x1="${f1(isz+10)}" y1="${f1(y)}" x2="${f1(W-isz-10)}" y2="${f1(y)}" stroke="#555" stroke-width="3.2" stroke-dasharray="1 8" stroke-linecap="round"/>`
+       :`<polyline points="${wavePath(t,isz+10,W-isz-10,y,rh*.26)}" fill="none" stroke="#555" stroke-width="3.2" stroke-dasharray="1 8" stroke-linecap="round"/>`;}
+   return {instr:'Kuljeta kynä pisteviivaa pitkin vasemmalta oikealle.',svg:s};}},
+ {id:'cut',area:'Kasvan, liikun ja kehityn',name:'Leikkausharjoitus',fn(W,H,d,T){
+   const types=CUT_TYPES[d];const rows=clamp(Math.floor(H/80),2,4);const rh=H/rows;let s='';
+   for(let r=0;r<rows;r++){const y=rh*(r+.5);const t=types[r%types.length];s+=txt(16,y,'✂',26);
+     s+=t==='straight'?`<line x1="34" y1="${f1(y)}" x2="${W-4}" y2="${f1(y)}" stroke="#000" stroke-width="2.5" stroke-dasharray="12 8"/>`
+       :`<polyline points="${wavePath(t,34,W-4,y,rh*.24)}" fill="none" stroke="#000" stroke-width="2.5" stroke-dasharray="12 8"/>`;}
+   return {instr:'Leikkaa saksilla katkoviivoja pitkin (aikuinen auttaa tarvittaessa).',svg:s};}},
+ {id:'maze',area:'Kasvan, liikun ja kehityn',name:'Labyrintti',fn(W,H,d,T){
+    const iz=Math.min(H*.3,W*.13,70);const mx=iz+8;const aw=W-2*mx,ah=H-12;const C=MAZE_LEVELS[d].cells;let cs=Math.sqrt(aw*ah/C);
+   const cols=Math.max(3,Math.floor(aw/cs)),rows=Math.max(2,Math.floor(ah/cs));cs=Math.min(aw/cols,ah/rows);const ox=(W-cols*cs)/2,oy=(H-rows*cs)/2;
+    const maze=makeMaze(rows,cols,d),right=maze.right,bottom=maze.bottom;
+   const X=c=>f1(ox+c*cs),Y=r=>f1(oy+r*cs);let p=`M${X(0)},${Y(0)} L${X(cols)},${Y(0)} M${X(0)},${Y(1)} L${X(0)},${Y(rows)} L${X(cols)},${Y(rows)} M${X(cols)},${Y(0)} L${X(cols)},${Y(rows-1)}`;
+   for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){if(right[r][c]&&c<cols-1)p+=` M${X(c+1)},${Y(r)} L${X(c+1)},${Y(r+1)}`;if(bottom[r][c]&&r<rows-1)p+=` M${X(c)},${Y(r+1)} L${X(c+1)},${Y(r+1)}`;}
+   let s=`<path d="${p}" fill="none" stroke="#000" stroke-width="${f1(Math.max(3,cs*.07))}" stroke-linecap="round"/>`;
+   const isz=Math.min(iz,cs*1.8);s+=icon(T.maze[0],ox-isz/2-4,oy+cs/2,isz)+icon(T.maze[1],ox+cols*cs+isz/2+4,oy+(rows-.5)*cs,isz);
+    const extra=' Valitse oikea reitti – osa haaroista päättyy umpikujaan.';
+    return {instr:`Labyrintti: ${T.mazeText}.${extra}`,svg:s};}},
+ {id:'move',area:'Kasvan, liikun ja kehityn',name:'Liikuntatehtävä',fn(W,H,d,T){
+   const acts=shuffle(['Hyppää kuin sammakko','Hyppää tasajalkaa','Taputa käsiä','Tee kyykky','Kurota kohti kattoa','Pyöritä käsiä','Konttaa kuin karhu','Hypi yhdellä jalalla','Pomppaa kuin kenguru','Marssi paikallaan']);
+   const rows=clamp(Math.floor(H/58),2,6);const rh=H/rows;const fs=Math.min(17,W*.045,rh*.32);let s='';const lo=[1,1,2,3,4][d],hi=[3,4,5,7,10][d];
+   for(let r=0;r<rows;r++){const n=ri(lo,hi);const cy=rh*(r+.5);s+=txt(6,cy,acts[r],fs,{anchor:'start'});
+     s+=txt(W*.6,cy,n,Math.min(rh*.6,34),{weight:'bold'});const dx0=W*.6+22,dx1=W-rh*.6-14;const step=Math.min(16,(dx1-dx0)/hi);
+     for(let i=0;i<n;i++)s+=`<circle cx="${f1(dx0+step*(i+.5))}" cy="${f1(cy)}" r="${f1(Math.min(step*.35,6))}" fill="#000"/>`;
+     const b=Math.min(rh*.5,26);s+=`<rect x="${f1(W-b-6)}" y="${f1(cy-b/2)}" width="${f1(b)}" height="${f1(b)}" rx="4" fill="none" stroke="#000" stroke-width="2.2"/>`;
+     if(r<rows-1)s+=`<line x1="0" y1="${f1(rh*(r+1))}" x2="${W}" y2="${f1(rh*(r+1))}" stroke="#aaa" stroke-width="1" stroke-dasharray="3 5"/>`;}
+   return {instr:'Aikuinen lukee tehtävän. Tee liike niin monta kertaa ja rastita ruutu.',svg:s};}},
+ {id:'emotions',area:'Minä ja meidän yhteisömme',name:'Tunteet',fn(W,H,d,T){
+   const list=[['iloinen','surullinen'],['iloinen','surullinen','vihainen'],['iloinen','surullinen','vihainen','yllättynyt'],['iloinen','surullinen','vihainen','yllättynyt','pelokas'],['iloinen','surullinen','vihainen','yllättynyt','pelokas','väsynyt']][d].concat(['tyhjä']);
+   const G=gridPos(list.length,4,4,W-8,H-8);const r=G.cs*.33;let s='';
+   list.forEach((e,i)=>{const [x,y]=G.pts[i];s+=face(x,y-G.cs*.08,r,e)+txt(x,y-G.cs*.08+r+Math.min(G.cs*.1,16),e==='tyhjä'?'Minä tänään':e[0].toUpperCase()+e.slice(1),Math.min(G.cs*.1,16),{weight:e==='tyhjä'?'bold':'normal'});});
+   return {instr:'Tunteet: nimetkää tunteet yhdessä ja piirrä tyhjään ympyrään oma naamasi tänään.',svg:s};}}
+];
+
+/* ---------- tila ja käyttöliittymä ---------- */
+const state={theme:'jalkapallo',level:0,selected:['count','maze','lines','coloring'],seed:Math.floor(Math.random()*1e6),pages:1};
+const $=id=>document.getElementById(id);
+const stars=d=>'★'.repeat(d+1)+'☆'.repeat(NLEV-1-d);
+function buildUI(){
+  $('themes').innerHTML=Object.entries(THEMES).map(([k,t])=>`<button data-k="${k}" class="${state.theme===k?'on':''}">${iconSvg(t.icons[0],22)}${t.name}</button>`).join('');
+  $('levels').innerHTML=Array.from({length:NLEV},(_,i)=>`<button data-i="${i}" class="${state.level===i?'on':''}">${stars(i)}</button>`).join('');
+  let html='',area='';
+  TASKS.forEach(t=>{if(t.area!==area){area=t.area;html+=`<div class="area">${area}</div>`;}
+    const idx=state.selected.indexOf(t.id);const sel=idx>=0;const dis=!sel&&state.selected.length>=6;
+    html+=`<label class="task ${sel?'sel':''} ${dis?'dis':''}"><input type="checkbox" data-id="${t.id}" ${sel?'checked':''} ${dis?'disabled':''}><span class="ord">${sel?idx+1:''}</span>${t.name}</label>`;});
+  $('tasks').innerHTML=html;
+}
+document.addEventListener('click',e=>{
+  const b=e.target.closest('#themes button');if(b){state.theme=b.dataset.k;buildUI();render();}
+  const l=e.target.closest('#levels button');if(l){state.level=+l.dataset.i;buildUI();render();}
+});
+document.addEventListener('change',e=>{
+  if(e.target.matches('#tasks input')){const id=e.target.dataset.id;
+    if(e.target.checked){if(!state.selected.includes(id)&&state.selected.length<6)state.selected.push(id);}else state.selected=state.selected.filter(x=>x!==id);
+    buildUI();render();}
+  if(e.target.id==='pages'){state.pages=clamp(+e.target.value||1,1,10);render();}
+});
+$('letters').addEventListener('input',render);
+$('shuffle').onclick=()=>{state.seed=Math.floor(Math.random()*1e6);render();};
+$('print').onclick=()=>window.print();
+$('mprint').onclick=()=>window.print();
+$('mshuffle').onclick=()=>{state.seed=Math.floor(Math.random()*1e6);render();};
+$('mpreview').onclick=()=>$('preview').scrollIntoView({behavior:'smooth'});
+function fit(){const mm=document.createElement('div');mm.style.width='210mm';document.body.appendChild(mm);const sw=mm.getBoundingClientRect().width;mm.remove();
+  const avail=$('preview').clientWidth-16;const sc=Math.min(1,avail/sw);
+  document.querySelectorAll('#sheets .sheet').forEach(sh=>{let w=sh.parentElement;if(!w.classList.contains('wrap')){w=document.createElement('div');w.className='wrap';sh.parentElement.insertBefore(w,sh);w.appendChild(sh);}
+    sh.style.transform=sc<1?`scale(${sc})`:'';w.style.width=sc<1?(sw*sc)+'px':'';w.style.height=sc<1?(sh.offsetHeight*sc)+'px':'';});
+  $('sheets').style.display='flex';$('sheets').style.flexDirection='column';$('sheets').style.alignItems='center';$('sheets').style.gap=(sc<1?12:20)+'px';}
+window.addEventListener('resize',fit);
+
+const LAYOUTS={1:[[2]],2:[[2],[2]],3:[[2],[1,1]],4:[[1,1],[1,1]],5:[[2],[1,1],[1,1]],6:[[1,1],[1,1],[1,1]]};
+function renderSheet(){
+  const T=THEMES[state.theme];const n=state.selected.length;const ctx={letters:$('letters').value};
+  let h=`<div class="sheet"><div class="hdr"><div class="l">${iconSvg(T.icons[0],'11mm')}<span class="ttl">${T.name} – tehtäväarkki</span><span class="lvl">${stars(state.level)}</span></div><div class="nm">Nimi: ____________________</div></div>`;
+  if(!n)return h+'<div class="empty">Valitse vasemmalta 1–6 tehtävää.</div></div>';
+  const rows=LAYOUTS[n];const areaH=259,gap=4;const rowH=(areaH-gap*(rows.length-1))/rows.length;let k=0;
+  rows.forEach(row=>{h+=`<div class="prow" style="height:${rowH}mm">`;
+    row.forEach(span=>{const cw=span===2?190:93;const w=cw-4.8,ht=rowH-4.8-10.5;const W=Math.round(w*4),H=Math.round(ht*4);
+      const task=TASKS.find(t=>t.id===state.selected[k]);let res;
+      try{res=task.fn(W,H,state.level,T,ctx);}catch(err){res={instr:task.name,svg:txt(W/2,H/2,'Virhe: '+err.message,14)};}
+      h+=`<div class="cell" style="width:${cw}mm;height:${rowH}mm"><div class="ctitle"><b>${k+1}</b>${res.instr}</div><svg width="${w}mm" height="${ht}mm" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${res.svg}</svg></div>`;k++;});
+    h+='</div>';});
+  return h+'</div>';
+}
+function render(){let html='';for(let p=0;p<state.pages;p++){R=mulberry32(state.seed+p*7919);html+=renderSheet();}$('sheets').innerHTML=html;fit();}
+buildUI();render();
+</script>
+</body>
+</html>
